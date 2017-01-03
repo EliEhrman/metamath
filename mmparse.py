@@ -23,7 +23,7 @@ import collections
 import os.path
 import csv
 
-verbosity = 14
+verbosity = 1
 
 
 class MMError(Exception): pass
@@ -189,6 +189,7 @@ class MM:
 		self.fs = FrameStack()
 		self.labels = {}
 		self.prove_labels = []
+		self.pproofs = dict()
 
 	def read(self, toks):
 		if len(self.labels) > 300:
@@ -230,11 +231,12 @@ class MM:
 					stat = stat[:i]
 				except ValueError:
 					raise MMError('$p must contain proof after $=')
+				if proof[0] == '(': proof = self.decompress_proof(stat, proof)
+				self.pproofs[label] = proof
 				if label in self.prove_labels:
 					vprint(1, 'verifying', label)
 					self.verify(label, stat, proof)
 				self.labels[label] = ('$p', self.fs.make_assertion(stat))
-				# self.pproofs[label] = [stat, proof]
 				label = None
 			elif tok == '$d':
 				self.fs.add_d(toks.readstat())
@@ -265,7 +267,7 @@ class MM:
 				if len(hyps) > 0:
 					[tokset.add(tok) for hyp in hyps for tok in hyp]
 				[tokset.add(tok) for tok in asserts]
-			elif self.labels[ldatak][0] == '$e':
+			elif self.labels[ldatak][0] in ('$e', 'f'):
 				hyp = pdata
 				[tokset.add(tok) for tok in hyp]
 		return tokset
@@ -426,12 +428,24 @@ if __name__ == '__main__':
 	fh = open(fname, 'rt')
 	# ireader = csv.reader(fh, delimiter='\t')
 	# contents = fh.readlines()
-	mm.prove_labels.append('mp2')
-	mm.prove_labels.append('syl')
+	# mm.prove_labels.append('mp2')
+	# mm.prove_labels.append('syl')
 	mm.read(toks(fh))
 	tokset = mm.inter_labels()
 	print(len(tokset))
 	labelprops = mm.map_labels()
+
+	# test for completeness of list
+	# for proof_label in mm.pproofs:
+	# 	for ref in mm.pproofs[proof_label]:
+	# 		if mm.labels.get(ref) == None:
+	# 			print 'failed to find ', ref, ' in proof ', proof_label
+
+	pfout = open('/devlink/data/metamath/prooflists.txt', 'wb')
+	csvproofs = csv.writer(pfout, delimiter=',', quoting=csv.QUOTE_MINIMAL)
+	for plabel in mm.pproofs:
+		csvproofs.writerow([plabel] + mm.pproofs[plabel])
+
 	fout = open('/devlink/data/metamath/setlabels.txt', 'wb')
 	csvwriter = csv.writer(fout, delimiter=',')
 	for label in labelprops:
