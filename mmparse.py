@@ -255,7 +255,7 @@ class MM:
 
 		self.fs.pop()
 
-	def inter_labels(self):
+	def create_tokset(self):
 		tokset = set()
 		for ldatak in self.labels:
 			pdata = self.labels[ldatak][1]
@@ -267,7 +267,7 @@ class MM:
 				if len(hyps) > 0:
 					[tokset.add(tok) for hyp in hyps for tok in hyp]
 				[tokset.add(tok) for tok in asserts]
-			elif self.labels[ldatak][0] in ('$e', 'f'):
+			elif self.labels[ldatak][0] in ('$e', '$f'):
 				hyp = pdata
 				[tokset.add(tok) for tok in hyp]
 		return tokset
@@ -282,6 +282,8 @@ class MM:
 			if self.labels[ldatak][0] in ('$p', '$a'):
 				asserts = pdata[3]
 				labelprops.append([ldatak] + [labelmap[tok] for tok in asserts])
+			elif self.labels[ldatak][0] in ('$e', '$f'):
+				labelprops.append([ldatak] + [labelmap[tok] for tok in pdata])
 		return labelprops
 
 	def apply_subst(self, stat, subst):
@@ -431,7 +433,7 @@ if __name__ == '__main__':
 	# mm.prove_labels.append('mp2')
 	# mm.prove_labels.append('syl')
 	mm.read(toks(fh))
-	tokset = mm.inter_labels()
+	tokset = mm.create_tokset()
 	print(len(tokset))
 	labelprops = mm.map_labels()
 
